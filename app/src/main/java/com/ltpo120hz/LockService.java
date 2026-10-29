@@ -291,13 +291,42 @@ public final class LockService extends Service {
             return new int[]{v, v};
         }
         if (s == Prefs.STYLE_PILL) {
-            return new int[]{Math.round(108 * d), Math.round(26 * d)};
+            // 宽度按「挡位 · 帧率」实测文字宽算，别留多余空白
+            return OverlayLockView.pillSize(this, targetHz);
         }
         return new int[]{1, 1}; // 隐形：1 像素，物理上不可能被看到
     }
 
-    private int gravityFor(int corner) {
-        switch (corner) {
+    /** 顶部安全距离：取「状态栏高度」和「挖孔安全边距」里更大的那个。 */
+    private int statusBarHeight() {
+        int h = 0;
+        try {
+            int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
+            if (id > 0) {
+                h = getResources().getDimensionPixelSize(id);
+            }
+        } catch (Throwable ignore) {
+        }
+        // 有刘海/挖孔的机器，挖孔往往比状态栏更高，以挖孔为准
+        try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                android.view.Display d = RateMonitor.display();
+                if (d != null) {
+                    android.view.DisplayCutout cut = d.getCutout();
+                    if (cut != null) {
+                        h = Math.max(h, cut.getSafeInsetTop());
+                    }
+                }
+            }
+        } catch (Throwable ignore) {
+        }
+        if (h <= 0) {
+            h = Math.round(48 * getResources().getDisplayMetrics().density);
+        }
+        return h;
+    }
+
+    private int gravityFor(int corner) {        switch (corner) {
             case 0:
                 return Gravity.TOP | Gravity.START;
             case 1:
@@ -332,11 +361,16 @@ public final class LockService extends Service {
                 PixelFormat.TRANSLUCENT);
 
         int corner = Prefs.corner(this);
-        lp.gravity = gravityFor(corner);
+        int gravity = gravityFor(corner);
+        lp.gravity = gravity;
         float d = getResources().getDisplayMetrics().density;
-        int margin = style == Prefs.STYLE_INVISIBLE ? 0 : Math.round(6 * d);
+        int margin = style == Prefs.STYLE_INVISIBLE ? 0 : Math.round(4 * d);
         lp.x = margin;
         lp.y = margin;
+        // 可见样式停在上方时避开状态栏/挖孔：贴着状态栏下沿，只留 4dp
+        if (style != Prefs.STYLE_INVISIBLE && (gravity & Gravity.TOP) == Gravity.TOP) {
+            lp.y = margin + statusBarHeight();
+        }
 
         // 老接口的两个提示，很多 ROM 只认这两个中的一个
         try {

@@ -114,6 +114,29 @@ public final class MainActivity extends Activity {
         askNotificationPermission();
         RateMonitor.check("activity-created");
         Logbuf.add("ui", "面板已打开");
+        ui.postDelayed(this::restoreIfNeeded, 600L);
+    }
+
+    /**
+     * 进程被系统杀掉之后重新打开面板：如果上次是「运行中」，自动把锁定恢复起来。
+     * 只有用户显式开过（prefs.running=true）才恢复，用户主动停掉的状态不会被复活。
+     */
+    private void restoreIfNeeded() {
+        boolean wasRunning = Prefs.get(this).getBoolean(Prefs.K_RUNNING, false);
+        if (!wasRunning || LockService.isRunning()) {
+            return;
+        }
+        if (!Settings.canDrawOverlays(this)) {
+            Logbuf.add("ui", "恢复跳过：没有悬浮窗权限");
+            return;
+        }
+        try {
+            LockService.start(this);
+            Logbuf.add("ui", "恢复上次的锁定状态");
+            refreshSoon();
+        } catch (Throwable t) {
+            Logbuf.add("ui", "恢复失败: " + t);
+        }
     }
 
     @Override

@@ -26,6 +26,11 @@ public final class Logbuf {
         while (LINES.size() > CAP) {
             LINES.removeFirst();
         }
+        // 同时写一份到 logcat，方便用 adb logcat -s Ltpo120Hz 远程排查
+        try {
+            android.util.Log.i("Ltpo120Hz", "[" + tag + "] " + msg);
+        } catch (Throwable ignore) {
+        }
     }
 
     public static synchronized String dump() {

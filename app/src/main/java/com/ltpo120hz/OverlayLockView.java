@@ -34,6 +34,28 @@ public final class OverlayLockView extends SurfaceView
         void onStats(float renderFps);
     }
 
+    // 指示条的内部排版常量（单位 dp），尺寸计算和绘制都用它们，避免两边写歪
+    private static final float PILL_TEXT_SP = 11f;
+    private static final float PILL_TEXT_X_DP = 11f;
+    private static final float PILL_RIGHT_PAD_DP = 7f;
+    private static final float PILL_HEIGHT_DP = 26f;
+    private static final float PILL_MIN_WIDTH_DP = 62f;
+
+    /**
+     * 按「挡位 · 帧率」的实际文字宽度算出指示条该多宽，避免右边留一大截空白。
+     * LockService 创建窗口时调它，drawPill 用同一组常量绘制。
+     */
+    public static int[] pillSize(Context context, float hz) {
+        float d = context.getResources().getDisplayMetrics().density;
+        Paint probe = new Paint(Paint.ANTI_ALIAS_FLAG);
+        probe.setTypeface(android.graphics.Typeface.MONOSPACE);
+        probe.setTextSize(PILL_TEXT_SP * d);
+        String sample = String.format(java.util.Locale.US, "%.0fHz · %.0f", hz, hz);
+        int w = Math.round((PILL_TEXT_X_DP + PILL_RIGHT_PAD_DP) * d + probe.measureText(sample));
+        int minW = Math.round(PILL_MIN_WIDTH_DP * d);
+        return new int[]{Math.max(w, minW), Math.round(PILL_HEIGHT_DP * d)};
+    }
+
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
     private final float density;
@@ -258,11 +280,11 @@ public final class OverlayLockView extends SurfaceView
         canvas.drawCircle(2.0f * density + 4f * density, h / 2f, 2.4f * density, paint);
 
         paint.setColor(0xFFE8EEF5);
-        paint.setTextSize(11f * density);
+        paint.setTextSize(PILL_TEXT_SP * density);
         paint.setTypeface(android.graphics.Typeface.MONOSPACE);
         paint.setTextAlign(Paint.Align.LEFT);
         String label = String.format(Locale.US, "%.0fHz · %.0f", targetHz, renderFps);
-        float textX = 2.0f * density + 9f * density;
+        float textX = PILL_TEXT_X_DP * density;
         float textY = h / 2f - (paint.descent() + paint.ascent()) / 2f;
         canvas.drawText(label, textX, textY, paint);
     }
