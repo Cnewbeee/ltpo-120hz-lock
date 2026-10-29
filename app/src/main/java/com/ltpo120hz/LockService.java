@@ -126,7 +126,12 @@ public final class LockService extends Service {
             return START_NOT_STICKY;
         }
 
-        targetHz = Prefs.targetHz(this);
+        float wanted = Prefs.targetHz(this);
+        targetHz = RateMonitor.snap(wanted);
+        if (Math.abs(targetHz - wanted) > 0.5f) {
+            Logbuf.add("svc", String.format(Locale.US,
+                    "目标 %.0fHz 面板不支持，吸附到 %.0fHz", wanted, targetHz));
+        }
         style = Prefs.style(this);
 
         // 必须在 5 秒内进入前台

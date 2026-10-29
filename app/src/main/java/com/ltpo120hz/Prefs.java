@@ -42,7 +42,7 @@ public final class Prefs {
 
     public static float targetHz(Context c) {
         float f = get(c).getFloat(K_TARGET, 120f);
-        if (f < 24f || f > 240f) {
+        if (f < 24f || f > 300f) {
             f = 120f;
         }
         return f;

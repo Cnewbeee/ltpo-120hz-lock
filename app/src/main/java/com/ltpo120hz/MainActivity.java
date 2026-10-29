@@ -27,6 +27,8 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -51,6 +53,7 @@ public final class MainActivity extends Activity {
     private TextView selfTestButton;
     private TextView fgLine;
     private TextView gamePermState;
+    private TextView sysWriteBtn;
 
     private int targetColorHz;
 
@@ -99,6 +102,7 @@ public final class MainActivity extends Activity {
 
         buildHeader(root);
         buildStatusCard(root);
+        buildTargetCard(root);
         buildStyleCard(root);
         buildGameCard(root);
         buildSelfTestCard(root);
@@ -172,6 +176,69 @@ public final class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = Ui.dp(this, 14);
         card.addView(primaryButton, lp);
+    }
+
+    private void buildTargetCard(LinearLayout root) {
+        LinearLayout card = Ui.card(this);
+        root.addView(card, Ui.matchWrap(this, 14));
+
+        card.addView(Ui.bold(this, "锁定挡位", 15f, Ui.TEXT));
+
+        List<Float> rates = supportedRates();
+        float target = Prefs.targetHz(this);
+        int selected = nearestIndex(rates, target);
+
+        String[] labels = new String[rates.size()];
+        for (int i = 0; i < rates.size(); i++) {
+            labels[i] = String.format(Locale.US, "%.0f", rates.get(i));
+        }
+
+        LinearLayout row = Ui.segmented(this, labels, selected, index -> {
+            float hz = rates.get(index);
+            Prefs.setTargetHz(MainActivity.this, hz);
+            Logbuf.add("ui", String.format(Locale.US, "目标改为 %.0fHz", hz));
+            restartIfRunning();
+            refreshSoon();
+        });
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowLp.topMargin = Ui.dp(this, 10);
+        card.addView(row, rowLp);
+
+        TextView unit = Ui.dim(this, "单位 Hz · 只列出这块屏幕真实支持的挡位", 11f);
+        card.addView(unit, Ui.matchWrap(this, 8));
+
+        TextView hint = Ui.dim(this,
+                "锁 60Hz 同样不会跳亮度——亮度跳变来自「换挡」这个动作，而不是挡位本身。"
+                        + "日常刷信息流锁 60 更省电；游戏或滑动要求顺滑时锁 120。"
+                        + "改挡位会立即重建悬浮窗，不用手动重开。", 11.5f);
+        hint.setLineSpacing(0f, 1.35f);
+        card.addView(hint, Ui.matchWrap(this, 8));
+    }
+
+    /** 屏幕上报的刷新率列表；万一拿不到就给个兜底。 */
+    private List<Float> supportedRates() {
+        List<Float> rates = RateMonitor.supportedRates();
+        if (rates == null || rates.isEmpty()) {
+            rates = new ArrayList<>();
+            rates.add(60f);
+            rates.add(90f);
+            rates.add(120f);
+        }
+        return rates;
+    }
+
+    private int nearestIndex(List<Float> rates, float hz) {
+        int best = 0;
+        float bestDelta = Float.MAX_VALUE;
+        for (int i = 0; i < rates.size(); i++) {
+            float delta = Math.abs(rates.get(i) - hz);
+            if (delta < bestDelta) {
+                bestDelta = delta;
+                best = i;
+            }
+        }
+        return best;
     }
 
     private void buildStyleCard(LinearLayout root) {
@@ -341,12 +408,12 @@ public final class MainActivity extends Activity {
         card.addView(sysState, Ui.matchWrap(this, 10));
 
         LinearLayout btnRow = Ui.row(this);
-        TextView write = Ui.button(this, "写入 120Hz", true, v -> writeSysLock());
+        sysWriteBtn = Ui.button(this, writeLabel(), true, v -> writeSysLock());
         TextView clear = Ui.button(this, "清除", false, v -> clearSysLock());
         LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         blp.rightMargin = Ui.dp(this, 6);
-        btnRow.addView(write, blp);
+        btnRow.addView(sysWriteBtn, blp);
         LinearLayout.LayoutParams blp2 = new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         blp2.leftMargin = Ui.dp(this, 6);
@@ -427,8 +494,8 @@ public final class MainActivity extends Activity {
                         s / 3600, (s % 3600) / 60, s % 60);
             }
             statusLine.setText(String.format(Locale.US,
-                    "mode #%d · 已锁定 %s · %s",
-                    RateMonitor.modeId(), uptime,
+                    "目标 %.0fHz · mode #%d · 已锁定 %s · %s",
+                    Prefs.targetHz(MainActivity.this), RateMonitor.modeId(), uptime,
                     !on ? "未运行" : (LockService.isGameSuspended() ? "游戏接管·已暂停" : "运行中")));
 
             int changes = RateMonitor.changes();
@@ -463,6 +530,11 @@ public final class MainActivity extends Activity {
                         : "未授予 WRITE_SECURE_SETTINGS（用下面那条 adb 命令授权）";
                 if (!sys.equals(sysState.getText().toString())) {
                     sysState.setText(sys);
+                }
+
+                String want = writeLabel();
+                if (!want.equals(sysWriteBtn.getText().toString())) {
+                    sysWriteBtn.setText(want);
                 }
 
                 boolean usage = ForegroundTracker.hasUsageAccess(MainActivity.this);
@@ -638,8 +710,11 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void writeSysLock() {
-        String err = SysLock.apply(this, Prefs.targetHz(this));
+    private String writeLabel() {
+        return String.format(Locale.US, "写入 %.0fHz", Prefs.targetHz(this));
+    }
+
+    private void writeSysLock() {        String err = SysLock.apply(this, Prefs.targetHz(this));
         if (err == null) {
             toast("已写入，观察上面的 Hz 是否稳定在 120");
             RateMonitor.check("after-sys-write");

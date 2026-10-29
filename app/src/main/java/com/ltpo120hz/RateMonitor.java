@@ -142,9 +142,50 @@ public final class RateMonitor {
         return false;
     }
 
-    /** 找到最接近 hz 的 display mode id；找不到返回 -1。 */
-    public static int bestModeId(float hz) {
+    /** 面板支持的所有刷新率，去重并升序。例如 [60, 90, 120]。 */
+    public static java.util.List<Float> supportedRates() {
+        java.util.ArrayList<Float> out = new java.util.ArrayList<>();
         Display d = display();
+        if (d == null) {
+            return out;
+        }
+        for (Display.Mode m : d.getSupportedModes()) {
+            float hz = m.getRefreshRate();
+            boolean dup = false;
+            for (float f : out) {
+                if (Math.abs(f - hz) < 0.5f) {
+                    dup = true;
+                    break;
+                }
+            }
+            if (!dup) {
+                out.add(hz);
+            }
+        }
+        java.util.Collections.sort(out);
+        return out;
+    }
+
+    /** 把任意目标值吸附到面板实际支持的刷新率上；列表为空时原样返回。 */
+    public static float snap(float hz) {
+        java.util.List<Float> rates = supportedRates();
+        if (rates.isEmpty()) {
+            return hz;
+        }
+        float best = rates.get(0);
+        float bestDelta = Math.abs(best - hz);
+        for (float f : rates) {
+            float delta = Math.abs(f - hz);
+            if (delta < bestDelta) {
+                bestDelta = delta;
+                best = f;
+            }
+        }
+        return best;
+    }
+
+    /** 找到最接近 hz 的 display mode id；找不到返回 -1。 */
+    public static int bestModeId(float hz) {        Display d = display();
         if (d == null) {
             return -1;
         }

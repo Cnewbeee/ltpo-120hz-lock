@@ -6,6 +6,8 @@ import android.provider.Settings;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 
+import java.util.Locale;
+
 /**
  * 下拉快捷开关：出门/看视频时快速关掉，避免一直高刷耗电。
  */
@@ -44,7 +46,16 @@ public final class LockTileService extends TileService {
         tile.setState(on ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
         tile.setLabel(getString(R.string.tile_label));
         if (Build.VERSION.SDK_INT >= 29) {
-            tile.setSubtitle(on ? "锁定中" : "已关闭");
+            float hz = Prefs.targetHz(this);
+            String state;
+            if (!on) {
+                state = "已关闭";
+            } else if (LockService.isGameSuspended()) {
+                state = "游戏中·暂停";
+            } else {
+                state = String.format(Locale.US, "%.0fHz 锁定中", hz);
+            }
+            tile.setSubtitle(state);
         }
         if (Build.VERSION.SDK_INT >= 29) {
             Icon icon = Icon.createWithResource(this, R.drawable.ic_stat_hz);
