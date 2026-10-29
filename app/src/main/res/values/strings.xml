@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">120Hz 常驻</string>
+    <string name="tile_label">120Hz</string>
+    <string name="channel_name">刷新率锁定</string>
+    <string name="a11y_desc">仅用于识别当前前台应用是不是游戏：当游戏在前台时自动暂停 120Hz 锁定，退出后恢复。不读取屏幕内容，不执行任何操作。</string>
+</resources>
