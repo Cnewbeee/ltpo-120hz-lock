@@ -10,5 +10,5 @@
     <color name="warn">#FFFFB020</color>
     <color name="danger">#FFFF5C5C</color>
     <color name="stroke">#FF2A3644</color>
-    <color name="iconBg">#FF0B0F14</color>
+    <color name="iconBg">#FFFFFFFF</color>
 </resources>
