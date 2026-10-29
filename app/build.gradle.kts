@@ -11,8 +11,8 @@ configure<com.android.build.api.dsl.ApplicationExtension> {
         applicationId = "com.ltpo120hz"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
     }
 
     buildTypes {
@@ -38,3 +38,4 @@ configure<com.android.build.api.dsl.ApplicationExtension> {
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
 }
+

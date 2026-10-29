@@ -33,7 +33,7 @@ public final class Prefs {
 
     public static int style(Context c) {
         int v = get(c).getInt(K_STYLE, STYLE_INVISIBLE);
-        return (v < 0 || v > 2) ? STYLE_INVISIBLE : v;
+        return (v < 0 || v > STYLE_PILL) ? STYLE_INVISIBLE : v;
     }
 
     public static void setStyle(Context c, int v) {

@@ -264,6 +264,18 @@ public final class MainActivity extends Activity {
         return best;
     }
 
+    private String styleHint(int style) {
+        switch (style) {
+            case Prefs.STYLE_DOT:
+                return "18dp 小圆点 + 缓慢旋转的指针，能肉眼确认它在工作；同样不挡触摸。";
+            case Prefs.STYLE_PILL:
+                return "显示当前挡位与实际出帧帧率，适合调试。";
+            default:
+                return "1×1 像素、alpha=1/255，物理上无法被看到，也不挡触摸。实测这个就足够"
+                        + "把面板钉住，不用更大的动画。";
+        }
+    }
+
     private void buildStyleCard(LinearLayout root) {
         LinearLayout card = Ui.card(this);
         root.addView(card, Ui.matchWrap(this, 14));
@@ -281,10 +293,8 @@ public final class MainActivity extends Activity {
         rowLp.topMargin = Ui.dp(this, 10);
         card.addView(styleRow, rowLp);
 
-        TextView hint = Ui.dim(this,
-                style == Prefs.STYLE_INVISIBLE
-                        ? "1×1 像素、alpha=1/255，物理上无法被看到，也不挡触摸。"
-                        : "会显示一个小图形，方便确认它真的在工作；同样不挡触摸。", 11.5f);
+        TextView hint = Ui.dim(this, styleHint(style), 11.5f);
+        hint.setLineSpacing(0f, 1.35f);
         card.addView(hint, Ui.matchWrap(this, 8));
 
         card.addView(Ui.bold(this, "停靠位置", 15f, Ui.TEXT),

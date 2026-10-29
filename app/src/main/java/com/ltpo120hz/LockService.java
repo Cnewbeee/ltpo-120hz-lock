@@ -364,12 +364,12 @@ public final class LockService extends Service {
         int gravity = gravityFor(corner);
         lp.gravity = gravity;
         float d = getResources().getDisplayMetrics().density;
-        int margin = style == Prefs.STYLE_INVISIBLE ? 0 : Math.round(4 * d);
+        int margin = 0;
         lp.x = margin;
         lp.y = margin;
-        // 可见样式停在上方时避开状态栏/挖孔：贴着状态栏下沿，只留 4dp
+        // 可见样式停在上方时避开状态栏/挖孔：贴着状态栏下沿，不留间隔
         if (style != Prefs.STYLE_INVISIBLE && (gravity & Gravity.TOP) == Gravity.TOP) {
-            lp.y = margin + statusBarHeight();
+            lp.y = statusBarHeight();
         }
 
         // 老接口的两个提示，很多 ROM 只认这两个中的一个
